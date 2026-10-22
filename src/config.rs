@@ -88,13 +88,31 @@ pub struct PathsConfig {
     pub profiles_dir: String,
 }
 
+/// Where research calls go. The roles and prompts are the same on every provider.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+pub enum Provider {
+    /// Anthropic API, billed to ANTHROPIC_API_KEY.
+    #[default]
+    Anthropic,
+    /// Headless Claude Code (`claude -p`), billed to the logged-in Claude subscription.
+    ClaudeCode,
+    /// OpenAI API, billed to OPENAI_API_KEY.
+    Openai,
+}
+
 /// Two roles: bulk reading of review batches, and the few judgement-heavy
 /// calls (cross-app synthesis, follow-up questions) where a stronger model
 /// earns its price.
 #[derive(Debug, Deserialize)]
 pub struct LlmConfig {
-    #[serde(default = "default_analysis_model", alias = "model")]
-    pub analysis_model: String,
+    #[serde(default)]
+    pub provider: Provider,
+
+    /// Unset picks the provider's default, so switching provider never sends
+    /// one vendor's model ID to another.
+    #[serde(default, alias = "model")]
+    pub analysis_model: Option<String>,
 
     #[serde(default = "default_max_tokens")]
     pub max_tokens: u32,
@@ -103,8 +121,8 @@ pub struct LlmConfig {
     #[serde(default)]
     pub analysis_effort: Option<String>,
 
-    #[serde(default = "default_synthesis_model")]
-    pub synthesis_model: String,
+    #[serde(default)]
+    pub synthesis_model: Option<String>,
 
     #[serde(default = "default_synthesis_max_tokens")]
     pub synthesis_max_tokens: u32,
@@ -131,14 +149,18 @@ pub struct RoleSettings {
 
 impl LlmConfig {
     pub fn for_role(&self, role: ModelRole) -> RoleSettings {
+        let (analysis, synthesis) = match self.provider {
+            Provider::Anthropic | Provider::ClaudeCode => ("claude-haiku-5-5", "claude-opus-5-5"),
+            Provider::Openai => ("gpt-6-luna", "gpt-6-luna"),
+        };
         match role {
             ModelRole::Analysis => RoleSettings {
-                model: self.analysis_model.clone(),
+                model: self.analysis_model.clone().unwrap_or_else(|| analysis.into()),
                 max_tokens: self.max_tokens,
                 effort: self.analysis_effort.clone(),
             },
             ModelRole::Synthesis => RoleSettings {
-                model: self.synthesis_model.clone(),
+                model: self.synthesis_model.clone().unwrap_or_else(|| synthesis.into()),
                 max_tokens: self.synthesis_max_tokens,
                 effort: self.synthesis_effort.clone(),
             },
@@ -243,17 +265,9 @@ fn default_review_staleness_days() -> u32 {
     14
 }
 
-fn default_analysis_model() -> String {
-    "claude-haiku-5-5".into()
-}
-
 // Thinking spends from this budget too; 25-review batches have hit 4096.
 fn default_max_tokens() -> u32 {
     16000
-}
-
-fn default_synthesis_model() -> String {
-    "claude-opus-5-5".into()
 }
 
 fn default_synthesis_max_tokens() -> u32 {
@@ -318,10 +332,11 @@ impl Default for PathsConfig {
 impl Default for LlmConfig {
     fn default() -> Self {
         Self {
-            analysis_model: default_analysis_model(),
+            provider: Provider::default(),
+            analysis_model: None,
             max_tokens: default_max_tokens(),
             analysis_effort: None,
-            synthesis_model: default_synthesis_model(),
+            synthesis_model: None,
             synthesis_max_tokens: default_synthesis_max_tokens(),
             synthesis_effort: default_synthesis_effort(),
             concurrency: default_llm_concurrency(),

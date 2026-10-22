@@ -1,3 +1,4 @@
+mod claude_code;
 mod competitive;
 pub mod llm;
 pub mod reviews;
@@ -38,7 +39,7 @@ pub async fn run_diagnosis(
     }
 
     if !reviews_only {
-        llm::require_api_key()?;
+        llm::preflight(config).await?;
     }
 
     tracing::info!("Diagnosing {} apps (profile: {})", apps.len(), profile.name);

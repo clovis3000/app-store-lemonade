@@ -2,12 +2,13 @@ use anyhow::{bail, Result};
 use futures::stream::{self, StreamExt};
 
 use crate::cli::ResearchArgs;
-use crate::config::{AppConfig, ModelRole};
+use crate::config::{AppConfig, ModelRole, Provider};
 use crate::db::{queries, Database};
 use crate::diagnose::llm::{self, LlmUsage};
 use crate::diagnose::reviews;
 use crate::http::RateLimitedClient;
 use crate::models::{App, CompetitiveResearchResult, Review};
+use crate::pricing;
 use crate::profile::{self, Profile};
 use crate::text::truncate;
 
@@ -35,7 +36,7 @@ pub async fn dispatch(db: &Database, client: &RateLimitedClient, config: &AppCon
         let (Some(id), Some(question), Some(parent_id)) = (&args.app_id, &args.followup, args.parent) else {
             bail!("--followup needs --app-id and --parent");
         };
-        llm::require_api_key()?;
+        llm::preflight(config).await?;
         let app = queries::get_app(db, id)?.ok_or_else(|| anyhow::anyhow!("App not found: {}", id))?;
         return run_followup(db, client, config, args.profile.as_deref(), &app, question, parent_id).await;
     }
@@ -47,11 +48,11 @@ pub async fn dispatch(db: &Database, client: &RateLimitedClient, config: &AppCon
     }
 
     let estimate = estimate_cost(db, config, &apps, args.max_reviews, args.batch_size)?;
-    print_estimate(&estimate, &profile);
+    print_estimate(&estimate, &profile, config);
     if args.plan {
         return Ok(());
     }
-    llm::require_api_key()?;
+    llm::preflight(config).await?;
 
     // Each analysis stays paired with its own app: apps that fail drop out,
     // so positions in `apps` no longer line up with the analyses.
@@ -204,7 +205,7 @@ fn estimate_cost(
 
     let cost = |role: ModelRole, input: usize, output: usize| {
         let model = config.llm.for_role(role).model;
-        llm::price_per_mtok(&model).map_or(0.0, |(i, o)| (input as f64 * i + output as f64 * o) / 1_000_000.0)
+        pricing::cost(&model, input as u64, output as u64).unwrap_or(0.0)
     };
 
     let total_llm_calls = app_estimates.iter().map(|a| a.llm_calls).sum::<usize>() + usize::from(cross_app);
@@ -228,8 +229,14 @@ fn estimate_cost(
     })
 }
 
-fn print_estimate(est: &CostEstimate, profile: &Profile) {
-    println!("=== Research Plan (profile: {}) ===\n", profile.name);
+fn print_estimate(est: &CostEstimate, profile: &Profile, config: &AppConfig) {
+    println!(
+        "=== Research Plan (profile: {}, provider: {:?}, models: {} / {}) ===\n",
+        profile.name,
+        config.llm.provider,
+        config.llm.for_role(ModelRole::Analysis).model,
+        config.llm.for_role(ModelRole::Synthesis).model,
+    );
     println!("{:<30} {:>8} {:>7} {:>8} {:>5}", "App", "Reviews", "Scrape?", "Analyse", "LLM");
     println!("{}", "-".repeat(62));
     for ae in &est.apps {
@@ -249,7 +256,14 @@ fn print_estimate(est: &CostEstimate, profile: &Profile) {
         est.total_input_tokens as f64 / 1000.0,
         est.total_output_tokens as f64 / 1000.0,
     );
-    println!("Est. cost:  ${:.2}", est.total_cost_usd);
+    if config.llm.provider == Provider::ClaudeCode {
+        println!(
+            "Est. cost:  $0 billed; uses your Claude subscription's limits (~${:.2} at API list price)",
+            est.total_cost_usd
+        );
+    } else {
+        println!("Est. cost:  ${:.2}", est.total_cost_usd);
+    }
     if est.scrape_requests > 0 {
         println!(
             "Scraping:   up to {} requests (~{:.0}m{:.0}s)",
@@ -268,9 +282,13 @@ fn print_estimate(est: &CostEstimate, profile: &Profile) {
 
 fn print_actual_cost(usage: &LlmUsage) {
     println!(
-        "\n=== Actual Cost ===\nLLM calls:  {}\nTokens:     {} input + {} output\nCost:       ${:.4}\n",
+        "\n=== Actual Cost ===\nLLM calls:  {}\nTokens:     {} input + {} output\nCost:       ${:.4}",
         usage.calls, usage.input_tokens, usage.output_tokens, usage.cost_usd,
     );
+    if usage.notional_usd > 0.0 {
+        println!("Subscription: ~${:.4} at API list price, billed to your Claude plan", usage.notional_usd);
+    }
+    println!();
 }
 
 // --- Single-app analysis (returns analysis ID) ---
@@ -366,7 +384,7 @@ async fn run_initial(
         None,
         &review_ids,
         &json,
-        &config.llm.analysis_model,
+        &config.llm.for_role(ModelRole::Analysis).model,
     )?;
 
     tracing::info!(
@@ -392,7 +410,7 @@ async fn run_cross_app_synthesis(
     researched: &[(i64, &App)],
     name: &str,
 ) -> Result<LlmUsage> {
-    tracing::info!("Running cross-app synthesis: \"{}\" on {}", name, config.llm.synthesis_model);
+    tracing::info!("Running cross-app synthesis: \"{}\" on {}", name, config.llm.for_role(ModelRole::Synthesis).model);
     let analysis_ids: Vec<i64> = researched.iter().map(|(aid, _)| *aid).collect();
     let app_ids: Vec<String> = researched.iter().map(|(_, app)| app.app_id.clone()).collect();
 
@@ -422,7 +440,7 @@ async fn run_cross_app_synthesis(
                 &analysis_ids,
                 &app_ids,
                 &json,
-                &config.llm.synthesis_model,
+                &config.llm.for_role(ModelRole::Synthesis).model,
             )?;
             println!("\nSynthesis saved: id={} name=\"{}\"", synthesis_id, name);
             println!("\n{}", synthesis.market_overview);
@@ -477,7 +495,7 @@ async fn run_followup(
         "  Followup on analysis #{} with {} reviews on {}: \"{}\"",
         parent_id,
         reviews_for_followup.len(),
-        config.llm.synthesis_model,
+        config.llm.for_role(ModelRole::Synthesis).model,
         question
     );
 
@@ -497,7 +515,7 @@ async fn run_followup(
         Some(parent_id),
         &used_ids,
         &json,
-        &config.llm.synthesis_model,
+        &config.llm.for_role(ModelRole::Synthesis).model,
     )?;
 
     println!("\n{}", followup.answer);

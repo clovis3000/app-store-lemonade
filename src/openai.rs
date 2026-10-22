@@ -20,12 +20,6 @@ impl OpenaiUsage {
         self.output_tokens += other.output_tokens;
         self.calls += other.calls;
     }
-
-    /// Calculate cost given per-million-token rates
-    pub fn cost_usd(&self, input_rate: f64, output_rate: f64) -> f64 {
-        (self.input_tokens as f64 / 1_000_000.0) * input_rate
-            + (self.output_tokens as f64 / 1_000_000.0) * output_rate
-    }
 }
 
 fn get_api_key() -> Option<String> {
@@ -101,11 +95,11 @@ pub async fn embed_batch(
     Ok((result, usage))
 }
 
-/// Call OpenAI chat completions directly with a raw reqwest::Client.
+/// One strict-JSON-schema chat completion, on a raw reqwest::Client.
 /// Bypasses rate limiting for use with concurrent semaphore-controlled requests.
 /// Retries throttling, overload and server errors with backoff.
 #[allow(clippy::too_many_arguments)]
-pub async fn classify_direct(
+pub async fn chat_structured(
     client: &Client,
     model: &str,
     max_tokens: u32,
@@ -114,8 +108,9 @@ pub async fn classify_direct(
     user_prompt: &str,
     schema: &serde_json::Value,
     schema_name: &str,
+    reasoning_effort: Option<&str>,
 ) -> Result<(String, OpenaiUsage)> {
-    let body = serde_json::json!({
+    let mut body = serde_json::json!({
         "model": model,
         "max_completion_tokens": max_tokens,
         "messages": [
@@ -131,6 +126,10 @@ pub async fn classify_direct(
             }
         }
     });
+
+    if let Some(effort) = reasoning_effort {
+        body["reasoning_effort"] = serde_json::json!(effort);
+    }
 
     let headers = auth_headers(api_key);
 
@@ -172,6 +171,10 @@ pub async fn classify_direct(
 
         if let Some(refusal) = response["choices"][0]["message"]["refusal"].as_str() {
             anyhow::bail!("OpenAI refused request: {}", refusal);
+        }
+        // Retrying the identical request would truncate identically.
+        if response["choices"][0]["finish_reason"] == "length" {
+            anyhow::bail!("{} output hit max_completion_tokens; lower the batch size or raise max_tokens", model);
         }
 
         let content = response["choices"][0]["message"]["content"]

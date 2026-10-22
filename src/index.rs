@@ -12,15 +12,13 @@ use crate::db::Database;
 use crate::http::RateLimitedClient;
 use crate::models::{App, Review};
 use crate::openai::{self, OpenaiUsage};
+use crate::pricing;
 use crate::profile::Profile;
 use crate::text::truncate;
 
 const EMBED_BATCH_SIZE: usize = 500;
 const CALIBRATION_PER_APP_RATING: usize = 6;
 const CALIBRATION_MAX_APPS: usize = 8;
-// gpt-5-mini and text-embedding-3-small, USD per million tokens.
-const CLASSIFY_PRICE: (f64, f64) = (0.25, 2.00);
-const EMBED_PRICE: f64 = 0.02;
 
 pub struct IndexOptions {
     pub calibrate: bool,
@@ -119,17 +117,19 @@ async fn classify(
         options.concurrency,
         model
     );
-    println!(
-        "Estimated cost: ${:.2}",
-        reviews.len() as f64 * (150.0 * CLASSIFY_PRICE.0 + 330.0 * CLASSIFY_PRICE.1) / 1_000_000.0
-    );
+    // Measured per review on gpt-5-mini: ~150 input, ~330 output tokens.
+    let n = reviews.len() as u64;
+    match pricing::cost(model, 150 * n, 330 * n) {
+        Some(usd) => println!("Estimated cost: ${:.2}", usd),
+        None => println!("Estimated cost: unknown (no price for {})", model),
+    }
 
     let mut results = stream::iter(batches)
         .map(|batch| {
             let prompt = format_review_batch(batch, app_names);
             let (raw_client, schema, system) = (&raw_client, &schema, &system);
             async move {
-                let result = openai::classify_direct(
+                let result = openai::chat_structured(
                     raw_client,
                     model,
                     config.openai.max_tokens,
@@ -138,6 +138,7 @@ async fn classify(
                     &prompt,
                     schema,
                     "review_classifications",
+                    None,
                 )
                 .await;
                 (batch, result)
@@ -171,7 +172,7 @@ async fn classify(
 
     println!("Labelled: {} / {} reviews ({} failed; rerun to retry them)", labelled, reviews.len(), failed);
     println!("Tokens: {} input + {} output ({} calls)", usage.input_tokens, usage.output_tokens, usage.calls);
-    println!("Cost: ${:.4}", usage.cost_usd(CLASSIFY_PRICE.0, CLASSIFY_PRICE.1));
+    println!("Cost: ${:.4}", pricing::cost(model, usage.input_tokens, usage.output_tokens).unwrap_or(0.0));
     Ok(())
 }
 
@@ -253,7 +254,8 @@ async fn embed(db: &Database, client: &RateLimitedClient, config: &AppConfig, re
 
     println!("Embedded: {} reviews", reviews.len());
     println!("Tokens: {} ({} calls)", usage.input_tokens, usage.calls);
-    println!("Cost: ${:.4}", usage.cost_usd(EMBED_PRICE, 0.0));
+    let model = &config.openai.embedding_model;
+    println!("Cost: ${:.4}", pricing::cost(model, usage.input_tokens, 0).unwrap_or(0.0));
     Ok(())
 }
 

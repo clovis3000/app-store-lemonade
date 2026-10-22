@@ -92,11 +92,19 @@ cache_dir = "data/cache"
 prompts_dir = "prompts"
 
 [llm]
-# Bulk reading of review batches.
-analysis_model = "claude-haiku-5-5"
+# Where research calls go:
+#   "anthropic"   Anthropic API, billed to ANTHROPIC_API_KEY
+#   "claude-code" headless Claude Code (`claude -p`), billed to your Claude Pro/Max
+#                 subscription; needs Claude Code installed and logged in
+#   "openai"      OpenAI API, billed to OPENAI_API_KEY
+# Override per run with --provider.
+provider = "anthropic"
+# Models follow the provider unless set here:
+#   anthropic, claude-code: claude-haiku-5-5 (analysis), claude-opus-5-5 (synthesis)
+#   openai:                 gpt-6-luna (both)
+# analysis_model = "claude-haiku-5-5"
+# synthesis_model = "claude-opus-5-5"
 max_tokens = 16000
-# Cross-app synthesis and follow-up questions: few calls, most judgement.
-synthesis_model = "claude-opus-5-5"
 synthesis_max_tokens = 32000
 synthesis_effort = "high"
 # Review batches in flight at once.

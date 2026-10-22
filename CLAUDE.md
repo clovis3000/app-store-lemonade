@@ -22,7 +22,7 @@ The order of work and the judgement calls are in `docs/workflow.md`. The command
 - Profile mechanics: `profiles/README.md` and `src/profile.rs`. Don't restate the override rules elsewhere.
 - Reading results: `docs/query-recipes.md`.
 - Apple endpoint behaviour: `docs/API-GUIDE.md`. Record new empirical findings there, with a date.
-- Model prices: `price_per_mtok` in `src/diagnose/llm.rs`, the only place any price lives.
+- Model prices: `src/pricing.rs`, the only place any price lives, for every provider.
 
 ## Anti-patterns
 
@@ -57,6 +57,10 @@ Cross-app synthesis took `apps[i]` for the i-th successful analysis. One failed 
 ### Don't hand-write LLM output schemas or parse JSON out of free text (2026-10-22)
 
 Output schemas derive from the Rust result structs (`output_schema::<T>()`), and calls use structured outputs. Before that, prose instructions plus fence-stripping produced truncated JSON that was retried identically. Check `stop_reason` (`max_tokens`, `refusal`) before reading content, and read the `text` block, not `content[0]`: thinking models put thinking blocks first.
+
+### Don't let an API key reach `claude -p`, and don't use `--bare` for it (2026-10-22)
+
+The `claude-code` provider exists so research bills the user's Claude subscription. Claude Code prefers `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` whenever either is set, and `--bare` never reads OAuth at all, so either one silently bills an API account instead. `claude_code.rs` strips both variables and its preflight refuses any auth method but `claude.ai`.
 
 ### Don't fall back to defaults when the config is missing (2026-10-22)
 

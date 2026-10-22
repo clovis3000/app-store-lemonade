@@ -21,7 +21,7 @@ It's a single Rust binary with a local SQLite database. It needs no accounts and
 ```bash
 git clone https://github.com/clovis3000/app-store-lemonade && cd app-store-lemonade
 cargo build --release
-export ANTHROPIC_API_KEY=...        # research and diagnose
+export ANTHROPIC_API_KEY=...        # research and diagnose (or use your Claude plan: see below)
 export OPENAI_API_KEY=...           # index and query (classification and embeddings)
 
 ./target/release/lemonade harvest --search-only
@@ -31,6 +31,20 @@ export OPENAI_API_KEY=...           # index and query (classification and embedd
 Then hand it to your agent. If you use Claude Code, open it in this folder and ask a question about a market: `CLAUDE.md` and [`docs/workflow.md`](docs/workflow.md) tell it how to drive lemonade. Any agent that can run shell commands and read SQLite can drive it the same way.
 
 `--plan` shows the cost before anything runs. A typical eight-app market costs well under a dollar.
+
+## Choosing who pays
+
+Research calls (per-app analysis, cross-app synthesis, follow-ups, build briefs) go to one of three providers. Set `provider` in `lemonade.toml`, or pass `--provider` for a single run, or export `LEMONADE_PROVIDER`:
+
+| Provider | Billed to | Default models |
+|---|---|---|
+| `anthropic` | `ANTHROPIC_API_KEY` | Claude Haiku 5.5 reads reviews, Claude Opus 5.5 synthesises |
+| `claude-code` | Your Claude Pro or Max subscription, via headless `claude -p` | The same Claude models; nothing billed per token, but it uses your plan's limits |
+| `openai` | `OPENAI_API_KEY` | GPT-6 Luna for both roles |
+
+`claude-code` needs [Claude Code](https://claude.com/claude-code) installed and logged in with your Claude account. lemonade checks the login before it starts. It also strips any `ANTHROPIC_API_KEY` from Claude Code's environment, because Claude Code would otherwise bill that key instead of your plan.
+
+Review labelling and semantic search (`index`, `query`) always use OpenAI: classification on gpt-5-mini, and embeddings on text-embedding-3-small, which Claude has no equivalent for.
 
 ## Profiles
 

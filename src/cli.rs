@@ -17,6 +17,11 @@ pub struct Cli {
     #[arg(short, long, global = true)]
     pub verbose: bool,
 
+    /// Where research calls go, overriding [llm] provider in lemonade.toml.
+    /// claude-code bills your Claude subscription via `claude -p` instead of an API key.
+    #[arg(long, global = true, value_enum, env = "LEMONADE_PROVIDER")]
+    pub provider: Option<crate::config::Provider>,
+
     #[command(subcommand)]
     pub command: Commands,
 }

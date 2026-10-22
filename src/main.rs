@@ -15,6 +15,7 @@ mod index;
 mod models;
 mod openai;
 mod output;
+mod pricing;
 mod profile;
 mod research;
 mod score;
@@ -40,7 +41,10 @@ async fn main() -> Result<()> {
         )
         .init();
 
-    let config = AppConfig::load(cli.config.as_deref())?;
+    let mut config = AppConfig::load(cli.config.as_deref())?;
+    if let Some(provider) = cli.provider {
+        config.llm.provider = provider;
+    }
     let database = db::Database::open(&config.paths.db)?;
     let client = http::RateLimitedClient::new(&config)?;
 
