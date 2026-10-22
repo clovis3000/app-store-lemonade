@@ -1,0 +1,83 @@
+You are an expert mobile app market analyst. Analyze the following user reviews for "{{ app_name }}" in the {{ app_category }} category (rating: {{ app_rating }}/5 from {{ app_rating_count }} ratings).
+
+## Reviews
+
+{{ reviews_json }}
+
+## Instructions
+
+Analyze these reviews carefully and return a single JSON object with the following structure. Do not include any text outside the JSON.
+
+{
+  "complaint_clusters": [
+    {
+      "label": "Short description of the complaint theme",
+      "count": 0,
+      "severity": "critical | major | minor",
+      "representative_quotes": ["exact quote from review", "..."],
+      "requires": "ux_redesign | feature_add | data_integration | server_infrastructure | proprietary_data | hardware_api | content_licensing | network_effect | regulatory | unknown"
+    }
+  ],
+  "monetisation_complaints": {
+    "subscription_fatigue": false,
+    "price_too_high": false,
+    "ads_intrusive": false,
+    "paywall_frustration": false,
+    "suggested_pricing": "e.g. one-time $2.99, freemium with $0.99 unlock, free with tasteful ads"
+  },
+  "positive_clusters": [
+    {
+      "label": "Short description of what users love",
+      "count": 0,
+      "representative_quotes": ["exact quote from review", "..."]
+    }
+  ],
+  "recency_analysis": {
+    "recent_negative_spike": false,
+    "recent_complaints_summary": "Brief summary of recent negative trends, or empty string if none",
+    "version_specific_complaints": ["version X broke Y", "..."]
+  },
+  "build_brief": {
+    "one_liner": "A single sentence describing the app a solo dev should build to capture this opportunity",
+    "core_features": ["feature 1", "feature 2"],
+    "differentiators": ["what to do better than the incumbent"],
+    "skip_features": ["features not worth building"],
+    "pricing_recommendation": "Recommended pricing strategy",
+    "aso_keywords": ["keyword1", "keyword2"]
+  },
+  "feasibility_tier": 1,
+  "recommended_action": "build | investigate | skip"
+}
+
+## Field guidance
+
+**severity**: "critical" = app-breaking or data-loss bugs; "major" = significant usability or missing feature issues; "minor" = cosmetic or nice-to-have complaints.
+
+**requires**: What capability is needed to fix the complaint:
+- ux_redesign: Better UI/UX design
+- feature_add: New feature a solo dev can build
+- data_integration: Requires external data sources or APIs
+- server_infrastructure: Needs backend servers at scale
+- proprietary_data: Requires data the incumbent owns
+- hardware_api: Requires specialised hardware access
+- content_licensing: Requires licensed content
+- network_effect: Value depends on user base size
+- regulatory: Involves regulatory compliance
+- unknown: Unclear what's needed
+
+**feasibility_tier** (1 = easiest for a solo dev, 8 = hardest):
+1. Static utility (calculator, converter, timer)
+2. Local-data CRUD (journal, tracker, notes)
+3. Sensor/device integration (compass, level, flashlight)
+4. External API mashup (weather, translator, exchange rates)
+5. Media processing (photo editor, scanner, QR reader)
+6. Sync and accounts (cross-device, cloud backup)
+7. Real-time or social features (chat, multiplayer, feeds)
+8. Regulated / data-moat (health records, finance, licensed content)
+
+**recommended_action**:
+- "build": Clear opportunity, feasible for a solo dev, weak incumbents
+- "investigate": Promising but needs more research (check competitors, validate demand)
+- "skip": Too competitive, requires infrastructure/data a solo dev can't provide, or market too small
+
+Return only valid JSON. No markdown fences, no commentary.

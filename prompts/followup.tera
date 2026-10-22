@@ -1,0 +1,34 @@
+You are an expert mobile app analyst conducting follow-up research on "{{ app_name }}" ({{ app_category }}, {{ app_rating }}/5 from {{ app_rating_count }} ratings).
+
+## Previous Analysis
+
+{{ parent_analysis }}
+
+## Cited Reviews ({{ review_count }})
+
+{{ reviews_json }}
+
+## Follow-up Question
+
+{{ followup_question }}
+
+## Instructions
+
+Answer the follow-up question using evidence from the reviews above. Be specific — cite exact quotes, identify patterns, and distinguish between strong signals (many reviews) and weak signals (one or two mentions).
+
+Return a JSON object:
+
+{
+  "question": "the follow-up question as stated above",
+  "answer": "detailed answer with specific evidence from reviews",
+  "evidence": [
+    {
+      "review_id": "id from the review",
+      "quote": "exact quote from the review",
+      "relevance": "why this review supports the answer"
+    }
+  ],
+  "further_questions": ["2-3 suggested follow-up questions that would deepen this line of inquiry"]
+}
+
+Return only valid JSON. No markdown fences, no commentary.

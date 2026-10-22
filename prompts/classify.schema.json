@@ -1,0 +1,67 @@
+{
+  "type": "object",
+  "properties": {
+    "themes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "paywall", "pricing", "ads", "ui_design", "ease_of_use", "bugs_crashes",
+          "performance", "data_loss", "sync", "privacy", "support", "notifications",
+          "onboarding", "customisation", "export", "integrations", "account_login",
+          "update_regression", "missing_feature", "accuracy", "content_quality", "other"
+        ]
+      }
+    },
+    "sentiment": {
+      "type": "string",
+      "enum": ["positive", "negative", "mixed", "neutral"]
+    },
+    "intensity": { "type": "integer" },
+    "emotional_tone": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "frustrated", "desperate", "grateful", "relieved", "betrayed", "empowered",
+            "hopeful", "resigned", "angry", "joyful", "anxious", "dismissive"
+          ]
+        },
+        { "type": "null" }
+      ]
+    },
+    "review_intent": {
+      "type": "string",
+      "enum": [
+        "praise", "complaint", "feature_request", "plea_for_help",
+        "farewell", "comparison", "neutral_report"
+      ]
+    },
+    "user_segment": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+    "user_context": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": ["new_user", "long_term", "switching_in", "switching_out", "churning", "unclear"]
+        },
+        { "type": "null" }
+      ]
+    },
+    "competitor_mentioned": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+    "mentions_premium": { "type": "boolean" },
+    "premium_sentiment": {
+      "anyOf": [
+        { "type": "string", "enum": ["positive", "negative", "mixed"] },
+        { "type": "null" }
+      ]
+    },
+    "features": { "type": "array", "items": { "type": "string" } },
+    "contains_personal_story": { "type": "boolean" }
+  },
+  "required": [
+    "themes", "sentiment", "intensity", "emotional_tone", "review_intent", "user_segment",
+    "user_context", "competitor_mentioned", "mentions_premium", "premium_sentiment",
+    "features", "contains_personal_story"
+  ],
+  "additionalProperties": false
+}

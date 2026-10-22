@@ -1,0 +1,16 @@
+/target
+/data
+/private
+web/data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.DS_Store
+web/node_modules/
+web/dist/
+# Profiles are your product research: private unless you choose otherwise.
+/profiles/*
+!/profiles/README.md
+CLAUDE.local.md
+/.claude/

@@ -1,0 +1,92 @@
+You are an expert mobile app analyst conducting competitive research. Analyze the following user reviews for "{{ app_name }}" in the {{ app_category }} category (rating: {{ app_rating }}/5 from {{ app_rating_count }} ratings).
+
+The goal is to understand what users love, hate, and wish for — to inform building a competing product.
+
+## Reviews ({{ review_count }} total)
+
+{{ reviews_json }}
+
+## Instructions
+
+Analyze these reviews carefully and return a single JSON object with the following structure. Do not include any text outside the JSON.
+
+Each review has an "id" field. Use these IDs to cite which reviews support each finding.
+
+{
+  "praised_features": [
+    {
+      "label": "Short name for the praised feature or quality",
+      "count": 0,
+      "importance": "core | differentiator | delight",
+      "review_ids": ["id1", "id2"],
+      "representative_quotes": ["exact quote from review", "..."],
+      "summary": "Why users value this — what need does it serve?"
+    }
+  ],
+  "hated_features": [
+    {
+      "label": "Short name for the complaint",
+      "count": 0,
+      "severity": "dealbreaker | frustrating | annoying",
+      "review_ids": ["id1", "id2"],
+      "representative_quotes": ["exact quote from review", "..."],
+      "summary": "What specifically is wrong and why it matters to users"
+    }
+  ],
+  "wishlist": [
+    {
+      "label": "Feature or capability users explicitly ask for",
+      "count": 0,
+      "feasibility": "easy | moderate | hard",
+      "review_ids": ["id1", "id2"],
+      "representative_quotes": ["exact quote from review", "..."],
+      "summary": "What users want and why existing features don't satisfy this need"
+    }
+  ],
+  "premium_sentiment": {
+    "what_makes_users_pay": ["feature or reason users cite for paying"],
+    "what_makes_users_cancel": ["reason users cite for cancelling or refusing to pay"],
+    "price_perception": "How users feel about the pricing — too expensive, fair, worth it?",
+    "free_vs_paid_friction": "What's locked behind the paywall that frustrates free users?",
+    "review_ids": ["id1", "id2"],
+    "representative_quotes": ["exact quotes about pricing, premium, subscription"]
+  },
+  "switching_signals": {
+    "switching_from": ["apps users say they switched FROM to use this app, and why"],
+    "switching_to": ["apps users say they're switching TO, and why"],
+    "loyalty_drivers": ["reasons users stay despite complaints"],
+    "review_ids": ["id1", "id2"],
+    "representative_quotes": ["exact quotes about switching or comparing apps"]
+  },
+  "underserved_segments": [
+    {
+      "segment": "Description of user group that feels underserved (e.g. 'teachers planning lessons', 'users with large libraries')",
+      "count": 0,
+      "review_ids": ["id1", "id2"],
+      "complaints": ["what this segment specifically needs that the app doesn't provide"],
+      "representative_quotes": ["exact quote from review"]
+    }
+  ],
+  "overall_summary": "2-3 sentence summary: what is this app's core value proposition from the user's perspective, what is it getting right, and where is it most vulnerable to a competitor?"
+}
+
+## Field guidance
+
+**importance** for praised features:
+- "core": fundamental to the app's value — users would leave without it
+- "differentiator": sets this app apart from alternatives
+- "delight": nice-to-have that creates positive sentiment
+
+**severity** for hated features:
+- "dealbreaker": causes users to leave or give 1-star reviews
+- "frustrating": significant pain point but users tolerate it
+- "annoying": minor irritation, not worth switching over
+
+**feasibility** for wishlist items:
+- "easy": straightforward UI or feature addition
+- "moderate": requires meaningful engineering but no external dependencies
+- "hard": requires infrastructure, data sources, or capabilities beyond a solo dev
+
+**underserved_segments**: Look especially for users who describe who they are or what they use the app for (a profession, a life stage, a condition, an unusual workflow) and say the app doesn't fit them. These groups are often the best wedge for a new product.
+
+Return only valid JSON. No markdown fences, no commentary.

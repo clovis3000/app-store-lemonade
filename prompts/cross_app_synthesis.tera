@@ -1,0 +1,58 @@
+You are an expert mobile app market analyst. You have competitive research analyses for {{ app_count }} apps in the same market category. Your job is to synthesize these into a single market landscape report that identifies the best opportunities for a new entrant.
+
+## Individual App Analyses
+
+{% for app in apps %}
+### {{ app.name }} ({{ app.rating }}/5, {{ app.rating_count }} ratings)
+
+{{ app.analysis }}
+
+{% endfor %}
+
+## Instructions
+
+Synthesize the individual analyses into a market landscape report. Look across all apps for patterns: complaints that appear everywhere (market-wide problems), strengths that only one app has (potential differentiators to copy), user segments that every app underserves (the real opportunity).
+
+Return a JSON object:
+
+{
+  "market_overview": "3-5 sentence overview of this market: who the users are, what they need, how well current apps serve them, and where the biggest gap is",
+  "universal_complaints": [
+    {
+      "label": "complaint that appears across multiple apps",
+      "apps_affected": ["App Name 1", "App Name 2"],
+      "severity_or_importance": "dealbreaker | frustrating | annoying",
+      "summary": "what the problem is and why no one has solved it"
+    }
+  ],
+  "universal_strengths": [
+    {
+      "label": "strength that users love across the market",
+      "apps_affected": ["App Name 1", "App Name 2"],
+      "severity_or_importance": "core | differentiator | delight",
+      "summary": "what any new entrant must get right — table stakes"
+    }
+  ],
+  "underserved_opportunities": [
+    {
+      "segment": "user group underserved across the market",
+      "apps_failing_them": ["App Name 1", "App Name 2"],
+      "unmet_needs": ["specific need 1", "specific need 2"],
+      "summary": "why this segment is underserved and what they actually want"
+    }
+  ],
+  "feature_gaps": [
+    {
+      "feature": "feature users want that no app does well",
+      "user_demand": "high | medium | low — based on how often users mention it",
+      "current_landscape": "which apps attempt this and why they fall short",
+      "opportunity": "what a new entrant could do differently"
+    }
+  ],
+  "pricing_landscape": "Summary of pricing across the market: what's free, what's paid, what users think about pricing, where there's room for a different model",
+  "recommended_positioning": "2-3 sentences: if you were building a new app in this category, what would your positioning be? What segment would you target, what would you do differently, what's your unfair advantage?"
+}
+
+Order universal_complaints and feature_gaps by severity/demand (most impactful first). Order underserved_opportunities by size of the underserved group.
+
+Return only valid JSON. No markdown fences, no commentary.

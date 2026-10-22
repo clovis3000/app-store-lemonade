@@ -1,0 +1,52 @@
+You are an expert mobile app analyst. You have received competitive research results from {{ batch_count }} separate batches of user reviews for "{{ app_name }}" ({{ app_category }}, {{ app_rating }}/5 from {{ app_rating_count }} ratings).
+
+Each batch independently extracted features, complaints, wishlist items, etc. This means there are near-duplicate entries that describe the same thing with different labels (e.g. "Cycle prediction accuracy" and "Accurate cycle predictions").
+
+## Raw Batch Results (mechanically merged)
+
+{{ raw_results }}
+
+## Instructions
+
+Consolidate these results into a single clean analysis. Your job:
+
+1. **Deduplicate**: Merge entries that describe the same feature/complaint/wish. Combine their counts (sum), merge their review_ids (deduplicate), keep the best representative quotes (max 3 per entry), and write a single summary.
+2. **Rank**: Order each list by total count (highest first).
+3. **Resolve conflicts**: Where batches disagree on importance/severity/feasibility, choose the most representative classification based on the combined evidence.
+4. **Synthesize**: Write a single coherent overall_summary (2-3 sentences), not a concatenation of batch summaries.
+5. **Preserve all review_ids**: Every review_id from the input must appear in at least one output entry. Do not drop citations.
+
+Return the exact same JSON schema as the input:
+
+{
+  "praised_features": [
+    {"label": "...", "count": 0, "importance": "core|differentiator|delight", "review_ids": [], "representative_quotes": [], "summary": "..."}
+  ],
+  "hated_features": [
+    {"label": "...", "count": 0, "severity": "dealbreaker|frustrating|annoying", "review_ids": [], "representative_quotes": [], "summary": "..."}
+  ],
+  "wishlist": [
+    {"label": "...", "count": 0, "feasibility": "easy|moderate|hard", "review_ids": [], "representative_quotes": [], "summary": "..."}
+  ],
+  "premium_sentiment": {
+    "what_makes_users_pay": [],
+    "what_makes_users_cancel": [],
+    "price_perception": "single coherent sentence",
+    "free_vs_paid_friction": "single coherent sentence",
+    "review_ids": [],
+    "representative_quotes": []
+  },
+  "switching_signals": {
+    "switching_from": [],
+    "switching_to": [],
+    "loyalty_drivers": [],
+    "review_ids": [],
+    "representative_quotes": []
+  },
+  "underserved_segments": [
+    {"segment": "...", "count": 0, "review_ids": [], "complaints": [], "representative_quotes": []}
+  ],
+  "overall_summary": "2-3 sentence synthesis"
+}
+
+Return only valid JSON. No markdown fences, no commentary.

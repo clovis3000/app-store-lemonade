@@ -1,0 +1,103 @@
+countries = ["us", "au", "gb", "ca", "nz"]
+
+keywords = [
+    "calculator",
+    "converter",
+    "timer",
+    "countdown",
+    "tracker",
+    "planner",
+    "journal",
+    "scanner",
+    "habit",
+    "budget",
+    "expense",
+    "notes",
+    "weather",
+    "unit",
+    "measure",
+    "export",
+    "backup",
+    "reminder",
+    "calendar",
+    "clock",
+    "stopwatch",
+    "flashlight",
+    "level",
+    "compass",
+    "ruler",
+    "qr",
+    "barcode",
+    "password",
+    "vpn",
+    "cleaner",
+    "battery",
+    "storage",
+    "wifi",
+    "speed test",
+    "translator",
+    "dictionary",
+    "thesaurus",
+    "recipe",
+    "meal plan",
+    "water",
+    "sleep",
+    "step counter",
+    "meditation",
+    "breathing",
+    "pomodoro",
+    "focus",
+    "white noise",
+    "fasting",
+    "bmi",
+    "calorie",
+    "macro",
+    "workout",
+    "gym",
+]
+
+[categories]
+"6002" = "Utilities"
+"6007" = "Productivity"
+"6013" = "Health & Fitness"
+"6015" = "Finance"
+"6017" = "Education"
+"6001" = "Weather"
+"6006" = "Reference"
+"6008" = "Photo & Video"
+
+[scoring]
+min_rating_count = 500
+max_rating = 4.2
+skip_developers = [
+    "Apple",
+    "Google LLC",
+    "Google",
+    "Meta Platforms, Inc.",
+    "Microsoft Corporation",
+    "Amazon",
+    "Amazon.com",
+]
+skip_categories = ["Games"]
+min_months_since_update = 0.0
+
+[rate_limits]
+rss_delay_ms = 1000
+itunes_delay_ms = 3000
+reviews_delay_ms = 3000
+
+[paths]
+db = "data/db/lemonade.db"
+cache_dir = "data/cache"
+prompts_dir = "prompts"
+
+[llm]
+# Bulk reading of review batches.
+analysis_model = "claude-haiku-5-5"
+max_tokens = 16000
+# Cross-app synthesis and follow-up questions: few calls, most judgement.
+synthesis_model = "claude-opus-5-5"
+synthesis_max_tokens = 32000
+synthesis_effort = "high"
+# Review batches in flight at once.
+concurrency = 4
